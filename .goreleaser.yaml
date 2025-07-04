@@ -6,8 +6,6 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-version: 2
-
 before:
   hooks:
     # You may remove this if you don't use go modules.
@@ -243,10 +241,9 @@ nfpms:
       - apk
 
     # Version Epoch.
-    epoch: 1
-
+    epoch: "1"
     # Version Release.
-    release: 1
+    release: "1"
 
     # Section.
     section: utils
