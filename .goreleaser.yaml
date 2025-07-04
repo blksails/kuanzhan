@@ -253,35 +253,34 @@ nfpms:
 
     # Priority.
     priority: optional
-
-# Docker images
-dockers:
-  - # IDs of the builds you want to create the docker images for.
-    ids:
-      - kuanzhan
-
-    # GOOS of the built binaries/packages that should be used.
-    goos: "linux"
-
-    # GOARCH of the built binaries/packages that should be used.
-    goarch: "amd64"
-
-    # Name of the image.
-    image_templates:
-      - "your-org/kuanzhan:{{ .Tag }}"
-      - "your-org/kuanzhan:latest"
-
-    # Dockerfile location.
-    dockerfile: Dockerfile
-
-    # Build arguments.
-    build_flag_templates:
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
-
-    # Extra flags to be passed down to the build command.
-    extra_files:
-      - kuanzhan.yaml.example
+# Docker images (disabled - uncomment and configure if needed)
+# dockers:
+#   - # IDs of the builds you want to create the docker images for.
+#     ids:
+#       - kuanzhan
+#
+#     # GOOS of the built binaries/packages that should be used.
+#     goos: "linux"
+#
+#     # GOARCH of the built binaries/packages that should be used.
+#     goarch: "amd64"
+#
+#     # Name of the image.
+#     image_templates:
+#       - "your-org/kuanzhan:{{ .Tag }}"
+#       - "your-org/kuanzhan:latest"
+#
+#     # Dockerfile location.
+#     dockerfile: Dockerfile
+#
+#     # Build arguments.
+#     build_flag_templates:
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
+#       - "--platform=linux/amd64"
+#
+#     # Extra flags to be passed down to the build command.
+#     extra_files:
+#       - kuanzhan.yaml.example
