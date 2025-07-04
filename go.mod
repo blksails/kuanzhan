@@ -3,10 +3,12 @@ module pkg.blksails.net/kuanzhan
 go 1.23.3
 
 require (
+	github.com/fatih/structs v1.1.0
 	github.com/go-viper/mapstructure/v2 v2.3.0
 	github.com/olekukonko/tablewriter v1.0.7
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
+	golang.org/x/net v0.33.0
 )
 
 require (
