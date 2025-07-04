@@ -17,7 +17,7 @@ before:
 
 builds:
   - id: kuanzhan
-    main: ./cmd/kuanzhan/main.go
+    main: ./cmd/kuanzhan
     binary: kuanzhan
     env:
       - CGO_ENABLED=0
