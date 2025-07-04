@@ -137,6 +137,11 @@ func (m *methodImpl[R, Q]) PostJSON(client *Client, params Q) (resp *R, err erro
 		return
 	}
 
+	if client.debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		log.Printf("request: %s", string(dump))
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	var httpClient = &http.Client{}
@@ -231,7 +236,7 @@ type PublishPageRequest struct {
 type UpdatePageNameResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
-	Data string `json:"data,omitempty"`
+	Data Any    `json:"data,omitempty"`
 }
 
 type UpdatePageNameRequest struct {
@@ -411,4 +416,18 @@ type UpdateSiteInfoResponse struct {
 type UpdateSiteInfoRequest struct {
 	SiteId   int64  `json:"siteId"`
 	SiteName string `json:"siteName"`
+}
+
+type Any struct {
+	String string
+}
+
+// UnmarshalJSON
+func (m *Any) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return nil
+	}
+	m.String = s
+	return nil
 }

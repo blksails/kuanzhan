@@ -72,7 +72,7 @@ kuanzhan create-site --size 5 --name "我的站点" --type FAST --business-type 
 
 ### 2. 站点列表
 
-查看站点列表及其页面信息，包含站点ID、名称、域名、套餐类型、状态等信息。
+查看站点列表及其页面信息。显示的表格列包括：站点ID、站点名称、站点域名、套餐类型、站点状态、页面ID、页面名称、页面URL。
 
 ```bash
 kuanzhan list [flags]
@@ -92,7 +92,7 @@ kuanzhan list --only-site
 
 ### 3. 上传站点
 
-从源站URL抓取内容并上传到指定站点。
+从源站URL抓取内容并上传到指定站点。可以指定现有页面ID或创建新页面。
 
 ```bash
 kuanzhan upload [flags]
@@ -104,14 +104,23 @@ kuanzhan upload [flags]
 - `-p, --page`: 创建页面数量 (默认: 1)
 - `-t, --tpl`: 页面模板 (默认: "WHITE")
 - `-n, --name`: 页面名称 (必需)
+- `-g, --page-ids`: 指定页面ID列表，如果指定则更新现有页面而不是创建新页面
 
 **示例**:
 ```bash
+# 上传到新页面
 kuanzhan upload \
   --source-url "https://example.com" \
   --site-ids 123,456,789 \
   --page 3 \
   --tpl WHITE \
+  --name "首页"
+
+# 上传到指定的现有页面
+kuanzhan upload \
+  --source-url "https://example.com" \
+  --site-ids 123,456,789 \
+  --page-ids 111,222,333 \
   --name "首页"
 ```
 
@@ -254,6 +263,28 @@ kuanzhan update-site --name "统一站点名称" --site-ids 1,2,3,4,5,6,7,8,9,10
 
 # 批量更换域名
 kuanzhan change-domain --site-ids 1,2,3,4,5,6,7,8,9,10
+```
+
+### 高级用法
+
+#### 更新现有页面内容
+
+如果你知道页面ID，可以直接更新现有页面而不是创建新页面：
+
+```bash
+kuanzhan upload \
+  --source-url "https://newcontent.com" \
+  --site-ids 123,456 \
+  --page-ids 111,222,333,444 \
+  --name "更新后的页面"
+```
+
+#### 只显示站点信息
+
+当你只需要查看站点基本信息而不需要页面详情时：
+
+```bash
+kuanzhan list --only-site
 ```
 
 ## 错误处理

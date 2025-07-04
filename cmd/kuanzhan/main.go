@@ -113,7 +113,7 @@ var uploadSiteCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		log.Println("pagehtml", pagehtml)
-		log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize)
+		log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
 
 		var (
 			pageIds []int
@@ -121,33 +121,47 @@ var uploadSiteCmd = &cobra.Command{
 
 		client := newClient()
 		for _, siteId := range siteIds {
-			pageResp, err := client.GetPageIds(siteId)
+			_, err := client.PublishSite(siteId)
 			if err != nil {
 				log.Fatal(err)
 			}
-			log.Println("pageIds", pageResp)
-			sitePageIds := pageResp.Data.PageIds
 
-			for _, pageId := range sitePageIds {
-				_, err := client.UpdatePageName(pageId, pageName)
+			if len(pageIds) > 0 {
+				for _, pageId := range pageIds {
+					_, err := client.UpdatePageName(pageId, pageName)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+			} else {
+				pageResp, err := client.GetPageIds(siteId)
 				if err != nil {
 					log.Fatal(err)
 				}
+				log.Println("pageIds", pageResp)
+				sitePageIds := pageResp.Data.PageIds
+
+				for _, pageId := range sitePageIds {
+					_, err := client.UpdatePageName(pageId, pageName)
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+
+				for i := 0; i < pageSize-len(sitePageIds); i++ {
+					resp, err := client.CreateSitePage(siteId, createPateTpl)
+					if err != nil {
+						log.Fatal(err)
+					}
+					_, err = client.UpdatePageName(resp.Data.PageId, pageName)
+					if err != nil {
+						log.Fatal(err)
+					}
+					sitePageIds = append(sitePageIds, resp.Data.PageId)
+				}
+
+				pageIds = append(pageIds, sitePageIds...)
 			}
-
-			for i := 0; i < pageSize-len(sitePageIds); i++ {
-				resp, err := client.CreateSitePage(siteId, createPateTpl)
-				if err != nil {
-					log.Fatal(err)
-				}
-				_, err = client.UpdatePageName(resp.Data.PageId, pageName)
-				if err != nil {
-					log.Fatal(err)
-				}
-				sitePageIds = append(sitePageIds, resp.Data.PageId)
-			}
-
-			pageIds = append(pageIds, sitePageIds...)
 		}
 
 		if len(pageIds) == 0 || len(siteIds) == 0 {
@@ -158,7 +172,7 @@ var uploadSiteCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println("resp", resp)
+		log.Println("taskId", resp.Data.TaskId)
 	},
 }
 
@@ -291,6 +305,7 @@ func init() {
 	uploadSiteCmd.PersistentFlags().IntVarP(&pageSize, "page", "p", 1, "创建页面数量")
 	uploadSiteCmd.PersistentFlags().StringVarP(&createPateTpl, "tpl", "t", "WHITE", "创建页面模板")
 	uploadSiteCmd.PersistentFlags().StringVarP(&pageName, "name", "n", "", "创建页面名称")
+	uploadSiteCmd.PersistentFlags().IntSliceVarP(&pageIds, "page-ids", "g", []int{}, "指定页面ID")
 	uploadSiteCmd.MarkPersistentFlagRequired("name")
 
 	updatePageCmd.PersistentFlags().StringVarP(&pageName, "name", "n", "", "更新页面名称")
