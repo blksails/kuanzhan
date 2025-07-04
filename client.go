@@ -35,6 +35,10 @@ func NewClient(appKey, appSecret string) *Client {
 				Path:   "/tbk/getPageIds",
 				Method: "POST",
 			},
+			CreateSitePage: &methodImpl[CreateSitePageResponse, CreateSitePageRequest]{
+				Path:   "/tbk/createSitePage",
+				Method: "POST",
+			},
 			PublishSite: &methodImpl[PublishSiteResponse, PublishSiteRequest]{
 				Path:   "/tbk/publishSite",
 				Method: "POST",
@@ -42,6 +46,14 @@ func NewClient(appKey, appSecret string) *Client {
 			PublishPage: &methodImpl[PublishPageResponse, PublishPageRequest]{
 				Path:   "/tbk/publishPage",
 				Method: "POST",
+			},
+			UpdatePageName: &methodImpl[UpdatePageNameResponse, UpdatePageNameRequest]{
+				Path:   "/tbk/updatePageName",
+				Method: "POST",
+			},
+			GetPageName: &methodImpl[GetPageNameResponse, GetPageNameRequest]{
+				Path:   "/tbk/getPageName",
+				Method: "GET",
 			},
 			GetSiteInfo: &methodImpl[GetSiteInfoResponse, GetSiteInfoRequest]{
 				Path:   "/tbk/getSiteInfo",
@@ -53,6 +65,18 @@ func NewClient(appKey, appSecret string) *Client {
 			},
 			BatchModifyPagePublishPageJs: &methodImpl[BatchModifyPagePublishPageJsResponse, BatchModifyPagePublishPageJsRequest]{
 				Path:   "/tbk/batchModifyPublishPageJs",
+				Method: "POST",
+			},
+			OpenBusinessPackage: &methodImpl[OpenBusinessPackageResponse, OpenBusinessPackageRequest]{
+				Path:   "/agent/openBusinessPackage",
+				Method: "POST",
+			},
+			ChangeDomain: &methodImpl[ChangeDomainResponse, ChangeDomainRequest]{
+				Path:   "/tbk/changeDomain",
+				Method: "POST",
+			},
+			UpdateSiteInfo: &methodImpl[UpdateSiteInfoResponse, UpdateSiteInfoRequest]{
+				Path:   "/tbk/updateSiteSetting",
 				Method: "POST",
 			},
 		},
@@ -133,6 +157,14 @@ func (c *Client) CreateSite(siteName string, domain string, siteType string, htt
 	})
 }
 
+// CreateSitePage
+func (c *Client) CreateSitePage(siteId int, tpl string) (*CreateSitePageResponse, error) {
+	return c.impls.CreateSitePage.Do(c, CreateSitePageRequest{
+		SiteId: siteId,
+		Tpl:    tpl,
+	})
+}
+
 // GetSiteIds
 func (c *Client) GetSiteIds() (*GetSiteIdsResponse, error) {
 	return c.impls.GetSiteIds.Do(c, GetSiteIdsRequest{})
@@ -157,6 +189,28 @@ func (c *Client) PublishPage(siteId int, pageId int) (*PublishPageResponse, erro
 	return c.impls.PublishPage.Do(c, PublishPageRequest{
 		SiteId: siteId,
 		PageId: pageId,
+	})
+}
+
+// UpdatePageName
+func (c *Client) UpdatePageName(pageId int, pageName string) (*UpdatePageNameResponse, error) {
+	return c.impls.UpdatePageName.PostJSON(c, UpdatePageNameRequest{
+		PageId:   pageId,
+		PageName: pageName,
+	})
+}
+
+// DeleteSitePage
+func (c *Client) DeleteSitePage(pageId int) (*DeleteSitePageResponse, error) {
+	return c.impls.DeleteSitePage.PostJSON(c, DeleteSitePageRequest{
+		PageId: pageId,
+	})
+}
+
+// GetPageName
+func (c *Client) GetPageName(siteId int) (*GetPageNameResponse, error) {
+	return c.impls.GetPageName.Do(c, GetPageNameRequest{
+		SiteId: siteId,
 	})
 }
 
@@ -185,5 +239,32 @@ func (c *Client) BatchModifyPagePublishPageJs(siteIds []int, pageIds []int, cont
 		Content:  content,
 		IsSecure: isSecure,
 		TaskId:   taskId,
+	})
+}
+
+// OpenBusinessPackage
+func (c *Client) OpenBusinessPackage(businessType string, siteId int64, appId string, phoneNo string) (*OpenBusinessPackageResponse, error) {
+	return c.impls.OpenBusinessPackage.Do(c, OpenBusinessPackageRequest{
+		BusinessType: businessType,
+		SiteId:       siteId,
+		AppId:        appId,
+		PhoneNo:      phoneNo,
+	})
+}
+
+// ChangeDomain
+func (c *Client) ChangeDomain(siteId int64, domain string, httpsForward bool) (*ChangeDomainResponse, error) {
+	return c.impls.ChangeDomain.Do(c, ChangeDomainRequest{
+		SiteId:       siteId,
+		Domain:       domain,
+		HTTPSForward: httpsForward,
+	})
+}
+
+// UpdateSiteInfo
+func (c *Client) UpdateSiteInfo(siteId int64, siteName string) (*UpdateSiteInfoResponse, error) {
+	return c.impls.UpdateSiteInfo.Do(c, UpdateSiteInfoRequest{
+		SiteId:   siteId,
+		SiteName: siteName,
 	})
 }

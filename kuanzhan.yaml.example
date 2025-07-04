@@ -1,0 +1,11 @@
+# Kuanzhan CLI 配置文件示例
+# 复制此文件为 kuanzhan.yaml 并填入您的快站 API 密钥
+
+# 快站 API 密钥
+app_key: "your_app_key_here"
+
+# 快站 API 密钥
+app_secret: "your_app_secret_here"
+
+# 调试模式（可选）
+# debug: false 

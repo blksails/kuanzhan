@@ -76,3 +76,40 @@ func TestClient_ModifyPageJs(t *testing.T) {
 	}
 	t.Log(resp1)
 }
+
+// GetPageName
+func TestClient_GetPageName(t *testing.T) {
+	var client = NewClient(os.Getenv("KUAIZHAN_APP_KEY"), os.Getenv("KUAIZHAN_APP_SECRET"))
+	client.SetDebug(true)
+	var siteId = os.Getenv("KUAIZHAN_SITE_ID")
+	siteIdInt, err := strconv.Atoi(siteId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.GetPageName(siteIdInt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(resp)
+}
+
+// BatchModifyPagePublishPageJs
+func TestClient_BatchModifyPagePublishPageJs(t *testing.T) {
+	var client = NewClient(os.Getenv("KUAIZHAN_APP_KEY"), os.Getenv("KUAIZHAN_APP_SECRET"))
+	client.SetDebug(true)
+	var siteId = os.Getenv("KUAIZHAN_SITE_ID")
+	var pageId = os.Getenv("KUAIZHAN_PAGE_ID")
+	siteIdInt, err := strconv.Atoi(siteId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageIdInt, err := strconv.Atoi(pageId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.BatchModifyPagePublishPageJs([]int{siteIdInt}, []int{pageIdInt}, testHtml, true, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(resp)
+}

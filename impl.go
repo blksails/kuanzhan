@@ -23,10 +23,16 @@ type impls struct {
 	GetPageIds                   *methodImpl[GetPageIdsResponse, GetPageIdsRequest]
 	PublishSite                  *methodImpl[PublishSiteResponse, PublishSiteRequest]
 	PublishPage                  *methodImpl[PublishPageResponse, PublishPageRequest]
+	UpdatePageName               *methodImpl[UpdatePageNameResponse, UpdatePageNameRequest]
+	DeleteSitePage               *methodImpl[DeleteSitePageResponse, DeleteSitePageRequest]
+	GetPageName                  *methodImpl[GetPageNameResponse, GetPageNameRequest]
 	CreateSitePage               *methodImpl[CreateSitePageResponse, CreateSitePageRequest]
 	GetSiteInfo                  *methodImpl[GetSiteInfoResponse, GetSiteInfoRequest]
 	ModifyPageJs                 *methodImpl[ModifyPageJsResponse, ModifyPageJsRequest]
 	BatchModifyPagePublishPageJs *methodImpl[BatchModifyPagePublishPageJsResponse, BatchModifyPagePublishPageJsRequest]
+	OpenBusinessPackage          *methodImpl[OpenBusinessPackageResponse, OpenBusinessPackageRequest]
+	ChangeDomain                 *methodImpl[ChangeDomainResponse, ChangeDomainRequest]
+	UpdateSiteInfo               *methodImpl[UpdateSiteInfoResponse, UpdateSiteInfoRequest]
 }
 
 func (m *methodImpl[R, Q]) Do(client *Client, params Q) (resp *R, err error) {
@@ -46,7 +52,7 @@ func (m *methodImpl[R, Q]) Do(client *Client, params Q) (resp *R, err error) {
 		form.Add(k, v)
 	}
 
-	req, err = http.NewRequest(m.Method, apiUrl, strings.NewReader(form.Encode()))
+	req, err = m.request(client, apiUrl, form)
 	if err != nil {
 		return
 	}
@@ -54,6 +60,10 @@ func (m *methodImpl[R, Q]) Do(client *Client, params Q) (resp *R, err error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	var httpClient = &http.Client{}
+	if client.debug {
+		dump, _ := httputil.DumpRequest(req, true)
+		log.Printf("request: %s", string(dump))
+	}
 
 	resp1, err := httpClient.Do(req)
 	if err != nil {
@@ -74,7 +84,22 @@ func (m *methodImpl[R, Q]) Do(client *Client, params Q) (resp *R, err error) {
 		return
 	}
 
+	getErr := getError(resp)
+	if getErr != nil {
+		return nil, getErr
+	}
+
 	return
+}
+
+// request
+func (m *methodImpl[R, Q]) request(client *Client, apiUrl string, form url.Values) (req *http.Request, err error) {
+	if m.Method == "GET" {
+		apiUrl = apiUrl + "?" + form.Encode()
+		return http.NewRequest(m.Method, apiUrl, nil)
+	} else {
+		return http.NewRequest(m.Method, apiUrl, strings.NewReader(form.Encode()))
+	}
 }
 
 // PostJSON
@@ -140,19 +165,19 @@ func (m *methodImpl[R, Q]) PostJSON(client *Client, params Q) (resp *R, err erro
 
 type SiteResponse struct {
 	Code int    `json:"code"`
-	Msg  string `json:"message"`
+	Msg  string `json:"msg"`
 	Data struct {
-		SiteID     string `json:"site_id"`
-		SiteDomain string `json:"site_domain"`
-		SiteStatus string `json:"site_status"`
+		SiteID     string `json:"siteId"`
+		SiteDomain string `json:"siteDomain"`
+		SiteStatus string `json:"siteStatus"`
 	} `json:"data"`
 }
 
 type SiteRequest struct {
 	SiteName     string `json:"siteName"`
-	Domain       string `json:"domain"`
-	SiteType     string `json:"siteType"`
-	HTTPSForward bool   `json:"httpsForward"`
+	Domain       string `json:"domain,omitempty"`
+	SiteType     string `json:"siteType,omitempty"`
+	HTTPSForward bool   `json:"httpsForward,omitempty"`
 }
 
 type GetSiteIdsResponse struct {
@@ -203,11 +228,32 @@ type PublishPageRequest struct {
 	PageId int `json:"pageId"`
 }
 
+type UpdatePageNameResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data string `json:"data,omitempty"`
+}
+
+type UpdatePageNameRequest struct {
+	PageId   int    `json:"pageId"`
+	PageName string `json:"pageName"`
+}
+
+type DeleteSitePageResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data string `json:"data"`
+}
+
+type DeleteSitePageRequest struct {
+	PageId int `json:"pageId"`
+}
+
 type CreateSitePageResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
-		Url string `json:"url"`
+		PageId int `json:"pageId"`
 	} `json:"data"`
 }
 
@@ -216,14 +262,27 @@ type CreateSitePageRequest struct {
 	Tpl    string `json:"tpl"`
 }
 
+type GetPageNameResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data []struct {
+		PageId int    `json:"pageId"`
+		Title  string `json:"title"`
+	} `json:"data,omitempty"`
+}
+
+type GetPageNameRequest struct {
+	SiteId int `json:"siteId"`
+}
+
 type GetSiteInfoResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
 		SiteId               string `json:"siteId"`
 		SiteName             string `json:"siteName"`
-		SiteDomain           string `json:"siteType"`
-		SiteStatus           string `json:"domain"`
+		SiteDomain           string `json:"siteDomain"`
+		SiteStatus           string `json:"siteStatus"`
 		PackageName          string `json:"packageName"`
 		PackageRemainingDays int    `json:"packageRemainingDays"`
 	} `json:"data"`
@@ -249,9 +308,9 @@ type ModifyPageJsRequest struct {
 }
 
 type BatchModifyPagePublishPageJsResponse struct {
-	Code int                              `json:"code"`
-	Msg  string                           `json:"msg"`
-	Data BatchModifyPagePublishPageJsData `json:"data"`
+	Code int                               `json:"code"`
+	Msg  string                            `json:"msg"`
+	Data *BatchModifyPagePublishPageJsData `json:"data,omitempty"`
 }
 
 type BatchModifyPagePublishPageJsData struct {
@@ -296,14 +355,60 @@ type BatchModifyPagePublishPageJsRequest struct {
 	TaskId   string `json:"taskId"`
 }
 
-func jsonToMap(v any, m *map[string]interface{}) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
+// 套餐类型枚举值
+const (
+	BusinessTypeSiteAdvancedYear         = "SITE_ADVANCED_YEAR"           // 站点高级包年套餐
+	BusinessTypeSiteExclusiveYear        = "SITE_EXCLUSIVE_YEAR"          // 站点尊享包年套餐
+	BusinessTypeSiteExclusiveLifetime    = "SITE_EXCLUSIVE_LIFETIME"      // 站点尊享终身套餐
+	BusinessTypeVoteAdvancedYear         = "VOTE_ADVANCED_YEAR"           // 投票高级包年套餐
+	BusinessTypeVoteAdvancedLifetime     = "VOTE_ADVANCED_LIFETIME"       // 投票高级终身套餐
+	BusinessTypeVoteAdvancedMonth        = "VOTE_ADVANCED_MONTH"          // 投票高级包年套餐
+	BusinessTypeVoteDiamondOneYear       = "VOTE_DIAMOND_ONE_YEAR"        // 投票钻石版包年套餐
+	BusinessTypeAppAdvancedYear          = "APP_ADVANCED_YEAR"            // 小程序高级包年套餐
+	BusinessTypeAppAdvancedLifetime      = "APP_ADVANCED_LIFETIME"        // 小程序高级终身套餐
+	BusinessTypeSiteExclusiveAndApp      = "SITE_EXCLUSIVE_AND_APP"       // 站点尊享小程序联合套餐
+	BusinessTypeKmApiBasicYear           = "KM_API_BASIC_YEAR"            // 快码短链API基础版包年套餐
+	BusinessTypeKmApiAdvancedYear        = "KM_API_ADVANCED_YEAR"         // 快码短链API进阶版包年套餐
+	BusinessTypeKmApiExclusiveYear       = "KM_API_EXCLUSIVE_YEAR"        // 快码短链API高级版包年套餐
+	BusinessTypeKmShortLinkAdvancedYear  = "KM_SHORT_LINK_ADVANCED_YEAR"  // 快码短链进阶版包年套餐
+	BusinessTypeKmShortLinkExclusiveYear = "KM_SHORT_LINK_EXCLUSIVE_YEAR" // 快码短链高级版包年套餐
+)
 
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.UseNumber()
+type OpenBusinessPackageResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+	} `json:"data,omitempty"`
+}
 
-	return dec.Decode(m)
+type OpenBusinessPackageRequest struct {
+	BusinessType string `json:"businessType"`      // 枚举，见套餐类型枚举值，必填字段
+	SiteId       int64  `json:"siteId,omitempty"`  // 站点类型套餐的站点id，非必填
+	AppId        string `json:"appId,omitempty"`   // 小程序类型套餐的小程序id，非必填
+	PhoneNo      string `json:"phoneNo,omitempty"` // 投票类型套餐、快码短链、快码短链api的使用用户手机号，非必填
+}
+
+type ChangeDomainResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+		NewDomain string `json:"newDomain"`
+	} `json:"data,omitempty"`
+}
+
+type ChangeDomainRequest struct {
+	SiteId       int64  `json:"siteId"`
+	Domain       string `json:"domain"`
+	HTTPSForward bool   `json:"httpsForward"`
+}
+
+type UpdateSiteInfoResponse struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data string `json:"data,omitempty"`
+}
+
+type UpdateSiteInfoRequest struct {
+	SiteId   int64  `json:"siteId"`
+	SiteName string `json:"siteName"`
 }

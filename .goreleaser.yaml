@@ -1,0 +1,287 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - id: kuanzhan
+    main: ./cmd/kuanzhan
+    binary: kuanzhan
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+    ignore:
+      - goos: windows
+        goarch: arm64
+      - goos: windows
+        goarch: arm
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - id: kuanzhan
+    builds:
+      - kuanzhan
+    format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+      - CHANGELOG*
+      - docs/*
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore"
+      - "^ci"
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
+  groups:
+    - title: "New Features"
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: "Documentation"
+      regexp: '^.*?docs(\(.+\))??!?:.+$'
+      order: 2
+    - title: "Dependency Updates"
+      regexp: '^.*?(feat|fix)\(deps\)!?:.+$'
+      order: 3
+    - title: "Other Changes"
+      order: 999
+
+# The lines beneath this are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+release:
+  # Repo in which the release will be created.
+  # Default is extracted from the origin remote URL or empty if its private.
+  # Note: it can only be one: either github, gitlab, or gitea
+  github:
+    owner: "" # 请替换为您的 GitHub 用户名或组织名
+    name: "" # 请替换为您的仓库名
+
+  # You can change the name of the release.
+  # Default is `{{.Tag}}`
+  name_template: "{{ .ProjectName }} {{ .Tag }}"
+
+  # If set to auto, will mark the release as not ready for production
+  # in case there is an indicator for this in the tag e.g. v1.0.0-rc1
+  # If set to true, will mark the release as not ready for production.
+  # Default is false.
+  prerelease: auto
+
+  # What to do with the release notes in case there the release already exists.
+  # Valid options are:
+  # - `keep-existing`: keep the existing notes
+  # - `replace`: replace existing notes
+  # - `prepend`: prepend the current notes to the existing notes
+  # - `append`: append the current notes to the existing notes
+  # Default is `keep-existing`.
+  mode: replace
+
+  # Header for the release body.
+  header: |
+    ## Kuanzhan CLI {{ .Tag }}
+
+    快站管理命令行工具 - 快速创建、管理和部署快站站点
+
+    ### 安装方法
+
+    #### 下载二进制文件
+    直接从 [Releases](https://github.com/your-org/kuanzhan/releases) 页面下载对应平台的二进制文件。
+
+    #### 使用 Go 安装
+    ```bash
+    go install pkg.blksails.net/kuanzhan/cmd/kuanzhan@{{ .Tag }}
+    ```
+
+    ### 配置
+    创建配置文件 `kuanzhan.yaml`:
+    ```yaml
+    app_key: "your_app_key"
+    app_secret: "your_app_secret"
+    ```
+
+    ### 主要功能
+    - 🚀 站点管理：创建、列表、升级、更新站点信息
+    - 📄 页面管理：创建、更新、删除页面
+    - 🔄 批量操作：支持批量创建站点和页面
+    - 🌐 内容上传：从源站URL抓取内容并上传到快站
+    - 🔧 域名管理：随机更换站点域名
+
+  # Footer for the release body.
+  footer: |
+
+    ---
+
+    **完整使用文档**: [README.md](https://github.com/your-org/kuanzhan/blob/main/README.md)
+
+    **技术支持**: 如有问题请提交 [Issue](https://github.com/your-org/kuanzhan/issues)
+
+# Homebrew tap (macOS package manager)
+brews:
+  - # Name of the recipe
+    name: kuanzhan
+
+    # GOARM to specify which 32-bit arm version to use if there are multiple versions
+    # from the build section. Brew formulas support only one 32-bit version.
+    # Default is 6 for all artifacts or each id if there are multiple versions.
+    goarm: "7"
+
+    # Repository to push the tap to.
+    repository:
+      owner: "" # 请替换为您的 GitHub 用户名或组织名
+      name: homebrew-tap
+      # Optionally a branch can be provided.
+      branch: main
+
+    # Template for the url which is determined by the given Token (github,
+    # gitlab or gitea).
+    url_template: "https://github.com/your-org/kuanzhan/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    # Git author used to commit to the repository.
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+    # The project name and current git tag are used in the format string.
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Caveats for the user of your binary.
+    caveats: |
+      使用前请先创建配置文件:
+
+      mkdir -p ~/.config/kuanzhan
+      echo "app_key: your_app_key" > ~/.config/kuanzhan/kuanzhan.yaml
+      echo "app_secret: your_app_secret" >> ~/.config/kuanzhan/kuanzhan.yaml
+
+      或在当前目录创建 kuanzhan.yaml 文件。
+
+    # Your app's homepage.
+    homepage: "https://github.com/your-org/kuanzhan"
+
+    # Your app's description.
+    description: "快站管理命令行工具 - 快速创建、管理和部署快站站点"
+
+    # SPDX identifier of your app's license.
+    license: "MIT"
+
+    # Setting this will prevent goreleaser to actually try to commit the updated
+    # formula - instead, the formula file will be stored on the dist folder only,
+    # leaving the responsibility of publishing it to the user.
+    skip_upload: false
+
+# Linux package manager
+nfpms:
+  - # Your app's package name.
+    package_name: kuanzhan
+
+    # Your app's homepage.
+    homepage: "https://github.com/your-org/kuanzhan"
+
+    # Your app's maintainer
+    maintainer: "Your Name <your-email@example.com>"
+
+    # Your app's description.
+    description: "快站管理命令行工具 - 快速创建、管理和部署快站站点"
+
+    # Your app's license.
+    license: "MIT"
+
+    # Formats to be generated.
+    formats:
+      - deb
+      - rpm
+      - apk
+
+    # Version Epoch.
+    epoch: 1
+
+    # Version Release.
+    release: 1
+
+    # Section.
+    section: utils
+
+    # Priority.
+    priority: optional
+
+# Docker images
+dockers:
+  - # IDs of the builds you want to create the docker images for.
+    ids:
+      - kuanzhan
+
+    # GOOS of the built binaries/packages that should be used.
+    goos: "linux"
+
+    # GOARCH of the built binaries/packages that should be used.
+    goarch: "amd64"
+
+    # Name of the image.
+    image_templates:
+      - "your-org/kuanzhan:{{ .Tag }}"
+      - "your-org/kuanzhan:latest"
+
+    # Dockerfile location.
+    dockerfile: Dockerfile
+
+    # Build arguments.
+    build_flag_templates:
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+
+    # Extra flags to be passed down to the build command.
+    extra_files:
+      - kuanzhan.yaml.example
