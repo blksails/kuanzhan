@@ -67,5 +67,6 @@ coverage.out
 coverage.html
 
 # Binary output
-kuanzhan
+/kuanzhan
 main
+!/cmd/kuanzhan/
