@@ -22,7 +22,7 @@ var rootCmd = &cobra.Command{
 	Short: "kuanzhan",
 	Long:  "kuanzhan",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("kuanzhan")
+		cmd.Help()
 	},
 }
 
@@ -90,7 +90,7 @@ var siteListCmd = &cobra.Command{
 				}
 
 				for _, pageName := range pageNames.Data {
-					row := append(prerow, fmt.Sprintf("%d", pageName.PageId), pageName.Title, siteInfo.Data.SiteDomain+"?"+strconv.Itoa(pageName.PageId))
+					row := append(prerow, fmt.Sprintf("%d", pageName.PageId), pageName.Title, siteInfo.Data.SiteDomain+"/"+strconv.Itoa(pageName.PageId))
 					rows = append(rows, row)
 				}
 			} else {
@@ -116,39 +116,37 @@ var uploadSiteCmd = &cobra.Command{
 		log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
 
 		var (
-			pageIds []int
+			allPageIds []int
 		)
 
 		client := newClient()
+		if taskId != "" {
+			resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, pagehtml, true, taskId)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println("task", resp.Data)
+			return
+		}
+		if len(pageIds) > 0 {
+			for _, pageId := range pageIds {
+				_, err := client.UpdatePageName(pageId, pageName)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			allPageIds = pageIds
+		}
+
 		for _, siteId := range siteIds {
 			_, err := client.PublishSite(siteId)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			if len(pageIds) > 0 {
-				for _, pageId := range pageIds {
-					_, err := client.UpdatePageName(pageId, pageName)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-			} else {
-				pageResp, err := client.GetPageIds(siteId)
-				if err != nil {
-					log.Fatal(err)
-				}
-				log.Println("pageIds", pageResp)
-				sitePageIds := pageResp.Data.PageIds
-
-				for _, pageId := range sitePageIds {
-					_, err := client.UpdatePageName(pageId, pageName)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-
-				for i := 0; i < pageSize-len(sitePageIds); i++ {
+			if len(pageIds) == 0 {
+				sitePageIds := []int{}
+				for i := 0; i < pageSize; i++ {
 					resp, err := client.CreateSitePage(siteId, createPateTpl)
 					if err != nil {
 						log.Fatal(err)
@@ -160,15 +158,15 @@ var uploadSiteCmd = &cobra.Command{
 					sitePageIds = append(sitePageIds, resp.Data.PageId)
 				}
 
-				pageIds = append(pageIds, sitePageIds...)
+				allPageIds = append(allPageIds, sitePageIds...)
 			}
 		}
 
-		if len(pageIds) == 0 || len(siteIds) == 0 {
+		if len(allPageIds) == 0 || len(siteIds) == 0 {
 			log.Fatal("no page ids or site ids")
 		}
 
-		resp, err := client.BatchModifyPagePublishPageJs(siteIds, pageIds, pagehtml, true, "")
+		resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, pagehtml, true, "")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -252,6 +250,28 @@ var updateSiteInfoCmd = &cobra.Command{
 	},
 }
 
+var publishPageCmd = &cobra.Command{
+	Use:   "publish-page",
+	Short: "发布页面",
+	Long:  "发布页面",
+	Run: func(cmd *cobra.Command, args []string) {
+		client := newClient()
+
+		siteResp, err := client.PublishSite(siteId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("siteResp", siteResp.Data.Url)
+
+		pageResp, err := client.PublishPage(siteId, pageId)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("pageResp", pageResp.Data.Url)
+	},
+}
+
 func Execute() {
 	rootCmd.AddCommand(createSiteCmd)
 	rootCmd.AddCommand(uploadSiteCmd)
@@ -261,6 +281,7 @@ func Execute() {
 	rootCmd.AddCommand(upgradeSiteCmd)
 	rootCmd.AddCommand(changeDomainCmd)
 	rootCmd.AddCommand(updateSiteInfoCmd)
+	rootCmd.AddCommand(publishPageCmd)
 	rootCmd.Execute()
 }
 
@@ -280,6 +301,9 @@ var (
 	debug          bool   // 是否debug
 	pageIds        []int  // 页面ID
 	onlySite       bool   // 是否只显示站点
+	taskId         string // 任务ID
+	pageId         int    // 页面ID
+	siteId         int    // 站点ID
 )
 
 func init() {
@@ -306,6 +330,8 @@ func init() {
 	uploadSiteCmd.PersistentFlags().StringVarP(&createPateTpl, "tpl", "t", "WHITE", "创建页面模板")
 	uploadSiteCmd.PersistentFlags().StringVarP(&pageName, "name", "n", "", "创建页面名称")
 	uploadSiteCmd.PersistentFlags().IntSliceVarP(&pageIds, "page-ids", "g", []int{}, "指定页面ID")
+	uploadSiteCmd.PersistentFlags().StringVarP(&taskId, "task-id", "a", "", "任务ID")
+
 	uploadSiteCmd.MarkPersistentFlagRequired("name")
 
 	updatePageCmd.PersistentFlags().StringVarP(&pageName, "name", "n", "", "更新页面名称")
@@ -313,6 +339,7 @@ func init() {
 	updatePageCmd.PersistentFlags().IntSliceVarP(&pageIds, "page-ids", "i", []int{}, "页面ID")
 
 	deletePageCmd.PersistentFlags().IntSliceVarP(&pageIds, "page-ids", "i", []int{}, "页面ID")
+	deletePageCmd.MarkPersistentFlagRequired("page-ids")
 
 	upgradeSiteCmd.PersistentFlags().StringVarP(&businessType, "business-type", "b", "SITE_EXCLUSIVE_YEAR", "升级站点套餐类型")
 	upgradeSiteCmd.PersistentFlags().IntSliceVarP(&siteIds, "site-ids", "i", []int{}, "站点ID")
@@ -325,6 +352,11 @@ func init() {
 	updateSiteInfoCmd.MarkPersistentFlagRequired("name")
 	updateSiteInfoCmd.PersistentFlags().IntSliceVarP(&siteIds, "site-ids", "i", []int{}, "站点ID")
 	updateSiteInfoCmd.MarkPersistentFlagRequired("site-ids")
+
+	publishPageCmd.PersistentFlags().IntVarP(&siteId, "site-id", "i", 0, "站点ID")
+	publishPageCmd.MarkPersistentFlagRequired("site-id")
+	publishPageCmd.PersistentFlags().IntVarP(&pageId, "page-id", "p", 0, "页面ID")
+	publishPageCmd.MarkPersistentFlagRequired("page-id")
 
 	initConfig()
 }

@@ -340,16 +340,17 @@ func (m *BatchModifyPagePublishPageJsData) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		m.Task = task
-		return err
+		return nil
 	}
 	m.TaskId = taskId
 	return nil
 }
 
 type SucceedPage struct {
-	PageID   int64  `json:"pageId"`
+	PageID   int    `json:"pageId"`
 	Status   string `json:"status"`
 	ErrorMsg string `json:"errorMsg"`
+	SiteId   int    `json:"siteId"`
 }
 
 type BatchModifyPagePublishPageJsRequest struct {

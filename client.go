@@ -47,6 +47,10 @@ func NewClient(appKey, appSecret string) *Client {
 				Path:   "/tbk/publishPage",
 				Method: "POST",
 			},
+			DeleteSitePage: &methodImpl[DeleteSitePageResponse, DeleteSitePageRequest]{
+				Path:   "/tbk/deleteSitePage",
+				Method: "POST",
+			},
 			UpdatePageName: &methodImpl[UpdatePageNameResponse, UpdatePageNameRequest]{
 				Path:   "/tbk/updatePageName",
 				Method: "POST",
@@ -202,7 +206,7 @@ func (c *Client) UpdatePageName(pageId int, pageName string) (*UpdatePageNameRes
 
 // DeleteSitePage
 func (c *Client) DeleteSitePage(pageId int) (*DeleteSitePageResponse, error) {
-	return c.impls.DeleteSitePage.PostJSON(c, DeleteSitePageRequest{
+	return c.impls.DeleteSitePage.Do(c, DeleteSitePageRequest{
 		PageId: pageId,
 	})
 }
