@@ -364,6 +364,7 @@ func init() {
 func initConfig() {
 	viper.SetConfigName("kuanzhan")
 	viper.SetConfigType("yaml")
+	viper.AddConfigPath("$HOME/.kuanzhan")
 	viper.AddConfigPath(".")
 	viper.ReadInConfig()
 
