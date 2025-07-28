@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/net/html"
+	"golang.org/x/sync/semaphore"
 	"pkg.blksails.net/kuanzhan"
 )
 
@@ -54,6 +56,8 @@ var createSiteCmd = &cobra.Command{
 	},
 }
 
+const maxConcurrent = 10
+
 var siteListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "站点列表",
@@ -67,37 +71,54 @@ var siteListCmd = &cobra.Command{
 		table := tablewriter.NewWriter(os.Stdout)
 		table.Header("站点ID", "站点名称", "套餐类型", "站点URL", "站点状态", "页面ID", "页面名称", "页面URL")
 
-		rows := [][]string{}
+		var (
+			rows = [][]string{}
+			sem  = semaphore.NewWeighted(maxConcurrent)
+			ctx  = context.Background()
+		)
+
 		for _, siteId := range resp.Data.SiteIds {
-			siteInfo, err := client.GetSiteInfo(siteId)
-			if err != nil {
+			if err := sem.Acquire(ctx, 1); err != nil {
 				log.Fatal(err)
 			}
 
-			prerow := []string{
-				fmt.Sprintf("%d", siteId),
-				siteInfo.Data.SiteName,
-				siteInfo.Data.SiteDomain,
-				siteInfo.Data.PackageName,
-				siteInfo.Data.SiteStatus,
-			}
-
-			if !onlySite {
-				pageNames, err := client.GetPageName(siteId)
+			go func(siteId int) {
+				defer sem.Release(1)
+				siteInfo, err := client.GetSiteInfo(siteId)
 				if err != nil {
+					log.Fatal(err)
+				}
+
+				prerow := []string{
+					fmt.Sprintf("%d", siteId),
+					siteInfo.Data.SiteName,
+					siteInfo.Data.SiteDomain,
+					siteInfo.Data.PackageName,
+					siteInfo.Data.SiteStatus,
+				}
+
+				if !onlySite {
+					pageNames, err := client.GetPageName(siteId)
+					if err != nil {
+						rows = append(rows, prerow)
+						return
+					}
+
+					for _, pageName := range pageNames.Data {
+						row := append(prerow, fmt.Sprintf("%d", pageName.PageId), pageName.Title, siteInfo.Data.SiteDomain+"/"+strconv.Itoa(pageName.PageId))
+						rows = append(rows, row)
+					}
+				} else {
 					rows = append(rows, prerow)
-					continue
 				}
 
-				for _, pageName := range pageNames.Data {
-					row := append(prerow, fmt.Sprintf("%d", pageName.PageId), pageName.Title, siteInfo.Data.SiteDomain+"/"+strconv.Itoa(pageName.PageId))
-					rows = append(rows, row)
-				}
-			} else {
-				rows = append(rows, prerow)
-			}
-
+			}(siteId)
 		}
+
+		if err := sem.Acquire(ctx, int64(maxConcurrent)); err != nil {
+			log.Printf("Failed to acquire semaphore: %v", err)
+		}
+
 		table.Bulk(rows)
 		table.Render()
 	},
