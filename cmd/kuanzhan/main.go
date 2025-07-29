@@ -133,7 +133,6 @@ var uploadSiteCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println("pagehtml", pagehtml)
 		log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
 
 		var (
