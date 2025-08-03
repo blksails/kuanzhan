@@ -465,7 +465,7 @@ func randomUniqueDomain() string {
 	timeStr := strconv.FormatInt(now%1000000, 36) // 取时间戳的后6位并转换为36进制
 
 	// 生成随机字符部分（4位）
-	randomLength := 4
+	randomLength := 10
 	randomPart := make([]byte, randomLength)
 	for i := range randomPart {
 		randomPart[i] = charset[rand.Intn(len(charset))]
