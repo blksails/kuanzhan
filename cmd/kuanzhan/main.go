@@ -28,6 +28,17 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "显示版本信息",
+	Long:  "显示当前版本、提交哈希和构建日期",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Version: %s\n", Version)
+		fmt.Printf("Commit: %s\n", Commit)
+		fmt.Printf("Date: %s\n", Date)
+	},
+}
+
 var createSiteCmd = &cobra.Command{
 	Use:   "create-site",
 	Short: "创建站点",
@@ -225,7 +236,7 @@ var deletePageCmd = &cobra.Command{
 }
 
 var upgradeSiteCmd = &cobra.Command{
-	Use:   "upgrade",
+	Use:   "upgrade-site",
 	Short: "升级站点",
 	Long:  "升级站点",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -293,6 +304,7 @@ var publishPageCmd = &cobra.Command{
 }
 
 func Execute() {
+	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(createSiteCmd)
 	rootCmd.AddCommand(uploadSiteCmd)
 	rootCmd.AddCommand(siteListCmd)
@@ -302,6 +314,7 @@ func Execute() {
 	rootCmd.AddCommand(changeDomainCmd)
 	rootCmd.AddCommand(updateSiteInfoCmd)
 	rootCmd.AddCommand(publishPageCmd)
+	// upgradeCmd is added in upgrade.go init() function
 	rootCmd.Execute()
 }
 
@@ -394,6 +407,12 @@ func initConfig() {
 }
 
 func main() {
+	// 输出版本信息用于调试
+	if debug {
+		fmt.Printf("Version: %s\n", Version)
+		fmt.Printf("Commit: %s\n", Commit)
+		fmt.Printf("Date: %s\n", Date)
+	}
 	Execute()
 }
 
@@ -479,3 +498,9 @@ func init() {
 	// 设置随机种子
 	rand.Seed(time.Now().UnixNano())
 }
+
+var (
+	Version = "dev"
+	Commit  = "unknown"
+	Date    = "unknown"
+)
