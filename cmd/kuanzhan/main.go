@@ -257,11 +257,12 @@ var changeDomainCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		client := newClient()
 		for _, siteId := range siteIds {
-			domain := randomUniqueDomain()
+			domain := randomUniqueDomainWithPrefixAndSuffix(prefix, suffix)
 			_, err := client.ChangeDomain(int64(siteId), domain, true)
 			if err != nil {
 				log.Fatal(err)
 			}
+			log.Println("change domain", domain)
 		}
 	},
 }
@@ -337,6 +338,8 @@ var (
 	taskId         string // 任务ID
 	pageId         int    // 页面ID
 	siteId         int    // 站点ID
+	prefix         string // 前缀
+	suffix         string // 后缀
 )
 
 func init() {
@@ -380,6 +383,9 @@ func init() {
 
 	changeDomainCmd.PersistentFlags().IntSliceVarP(&siteIds, "site-ids", "i", []int{}, "站点ID")
 	changeDomainCmd.MarkPersistentFlagRequired("site-ids")
+
+	changeDomainCmd.PersistentFlags().StringVar(&prefix, "prefix", "jk-", "前缀")
+	changeDomainCmd.PersistentFlags().StringVar(&suffix, "suffix", ".shop", "后缀")
 
 	updateSiteInfoCmd.PersistentFlags().StringVarP(&siteName, "name", "n", "", "更新站点名称")
 	updateSiteInfoCmd.MarkPersistentFlagRequired("name")
@@ -492,6 +498,11 @@ func randomUniqueDomain() string {
 
 	// 组合时间因子和随机字符
 	return timeStr + string(randomPart)
+}
+
+func randomUniqueDomainWithPrefixAndSuffix(prefix, suffix string) string {
+	now := time.Now().UnixMilli()
+	return fmt.Sprintf("%s%d%s", prefix, now, suffix)
 }
 
 func init() {
