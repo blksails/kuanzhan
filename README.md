@@ -30,12 +30,39 @@ go install pkg.blksails.net/kuanzhan/cmd/kuanzhan@latest
 
 ## 配置
 
+### 基本配置
+
 在项目根目录创建 `kuanzhan.yaml` 配置文件：
 
 ```yaml
 app_key: "your_app_key"
 app_secret: "your_app_secret"
 ```
+
+### 多账号配置
+
+支持配置多个快站账号，通过 `profiles` 结构来管理不同的账号配置：
+
+```yaml
+app_key: "default_app_key"
+app_secret: "default_app_secret"
+profiles:
+  default:
+    app_key: "default_app_key"
+    app_secret: "default_app_secret"
+  production:
+    app_key: "prod_app_key"
+    app_secret: "prod_app_secret"
+  testing:
+    app_key: "test_app_key"
+    app_secret: "test_app_secret"
+```
+
+**配置说明**：
+- 顶级的 `app_key` 和 `app_secret` 作为默认配置
+- `profiles` 下可以定义多个命名配置
+- `default` 配置会在未指定 profile 时使用
+- 可以根据需要添加任意数量的 profile 配置
 
 ## 使用方法
 
@@ -48,6 +75,7 @@ kuanzhan [command] [flags]
 ### 全局参数
 
 - `-d, --debug`: 开启调试模式
+- `-p, --profile`: 指定使用的配置文件 profile (默认: "default")
 
 ## 命令说明
 
@@ -267,6 +295,27 @@ kuanzhan change-domain --site-ids 1,2,3,4,5,6,7,8,9,10
 
 ### 高级用法
 
+#### 多账号配置使用
+
+使用不同的配置 profile 来管理多个快站账号：
+
+```bash
+# 使用默认配置
+kuanzhan list
+
+# 使用 production 配置
+kuanzhan --profile production list
+
+# 使用 testing 配置创建站点
+kuanzhan --profile testing create-site --size 2 --name "测试站点"
+
+# 使用指定配置上传内容
+kuanzhan --profile production upload \
+  --source-url "https://example.com" \
+  --site-ids 123,456 \
+  --name "生产环境页面"
+```
+
 #### 更新现有页面内容
 
 如果你知道页面ID，可以直接更新现有页面而不是创建新页面：
@@ -293,6 +342,8 @@ kuanzhan list --only-site
 - 检查网络连接是否正常
 - 验证站点ID和页面ID是否有效
 - 使用 `--debug` 参数查看详细的调试信息
+- 使用 `--profile` 参数时，确保指定的 profile 在配置文件中存在
+- 多账号配置时，确保每个 profile 下都有正确的 `app_key` 和 `app_secret`
 
 ## 开发
 

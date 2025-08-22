@@ -19,6 +19,8 @@ import (
 	"pkg.blksails.net/kuanzhan"
 )
 
+var profile string = "default"
+
 var rootCmd = &cobra.Command{
 	Use:   "kuanzhan",
 	Short: "kuanzhan",
@@ -344,6 +346,7 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug")
+	rootCmd.PersistentFlags().StringVarP(&profile, "profile", "p", "default", "profile")
 
 	siteListCmd.PersistentFlags().BoolVarP(&onlySite, "only-site", "o", false, "是否只显示站点")
 
@@ -423,6 +426,11 @@ func main() {
 }
 
 func newClient() *kuanzhan.Client {
+	if profile != "default" {
+		appKey = viper.GetString(fmt.Sprintf("profiles.%s.app_key", profile))
+		appSecret = viper.GetString(fmt.Sprintf("profiles.%s.app_secret", profile))
+	}
+
 	client := kuanzhan.NewClient(appKey, appSecret)
 	client.SetDebug(debug)
 	return client
