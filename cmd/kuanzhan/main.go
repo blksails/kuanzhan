@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/olekukonko/tablewriter"
@@ -142,19 +143,37 @@ var uploadSiteCmd = &cobra.Command{
 	Short: "上传站点",
 	Long:  "快站快速上传站点",
 	Run: func(cmd *cobra.Command, args []string) {
-		pagehtml, err := downloadPage(sourceUrl)
-		if err != nil {
-			log.Fatal(err)
+		var pagehtml []byte
+		var err error
+		if sourceUrl == "" && localPath == "" {
+			log.Fatal("source-url or local-path is required")
 		}
-		log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
+
+		if localPath != "" {
+			pagehtml, err = os.ReadFile(localPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println("upload site ", localPath, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
+		} else {
+			pagehtml, err = downloadPage(sourceUrl)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println("upload site ", sourceUrl, " to site ", siteIds, " page ", pageSize, " pageIds ", pageIds)
+		}
 
 		var (
 			allPageIds []int
 		)
 
+		if debug {
+			log.Println("pagehtml", string(pagehtml))
+		}
+
 		client := newClient()
 		if taskId != "" {
-			resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, pagehtml, true, taskId)
+			resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, string(pagehtml), true, taskId)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -199,7 +218,7 @@ var uploadSiteCmd = &cobra.Command{
 			log.Fatal("no page ids or site ids")
 		}
 
-		resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, pagehtml, true, "")
+		resp, err := client.BatchModifyPagePublishPageJs(siteIds, allPageIds, string(pagehtml), true, "")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -323,6 +342,7 @@ func Execute() {
 
 var (
 	sourceUrl      string // 上传站点源站URL
+	localPath      string // 上传站点本地路径
 	appKey         string // 快站APPKEY
 	appSecret      string // 快站APPSECRET
 	siteIds        []int  // 站点ID
@@ -353,7 +373,7 @@ func init() {
 	pflags := uploadSiteCmd.PersistentFlags()
 
 	pflags.StringVarP(&sourceUrl, "source-url", "s", "", "源站URL") // required
-	uploadSiteCmd.MarkPersistentFlagRequired("source-url")
+	// uploadSiteCmd.MarkPersistentFlagRequired("source-url")
 
 	pflags.IntSliceVarP(&siteIds, "site-ids", "i", []int{}, "站点ID") // required
 	uploadSiteCmd.MarkPersistentFlagRequired("site-ids")
@@ -370,6 +390,7 @@ func init() {
 	uploadSiteCmd.PersistentFlags().StringVarP(&pageName, "name", "n", "", "创建页面名称")
 	uploadSiteCmd.PersistentFlags().IntSliceVarP(&pageIds, "page-ids", "g", []int{}, "指定页面ID")
 	uploadSiteCmd.PersistentFlags().StringVarP(&taskId, "task-id", "a", "", "任务ID")
+	uploadSiteCmd.PersistentFlags().StringVarP(&localPath, "local-path", "l", "", "本地路径")
 
 	uploadSiteCmd.MarkPersistentFlagRequired("name")
 
@@ -436,26 +457,27 @@ func newClient() *kuanzhan.Client {
 	return client
 }
 
-func downloadPage(url string) (string, error) {
+func downloadPage(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// 查找body节点
 	bodyNode := findBodyNode(doc)
 	if bodyNode == nil {
-		return "", fmt.Errorf("body node not found")
+		return nil, fmt.Errorf("body node not found")
 	}
 
 	// 将body节点内部内容转换为HTML字符串
 	body := renderBodyContent(bodyNode)
-	return body, nil
+	body = strings.TrimSpace(body)
+	return []byte(body), nil
 }
 
 // 查找body节点

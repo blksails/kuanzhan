@@ -70,3 +70,5 @@ coverage.html
 /kuanzhan
 main
 !/cmd/kuanzhan/
+
+tests/
