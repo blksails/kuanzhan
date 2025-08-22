@@ -346,7 +346,7 @@ var (
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "debug")
-	rootCmd.PersistentFlags().StringVarP(&profile, "profile", "p", "default", "profile")
+	rootCmd.PersistentFlags().StringVarP(&profile, "profile", "c", "default", "profile")
 
 	siteListCmd.PersistentFlags().BoolVarP(&onlySite, "only-site", "o", false, "是否只显示站点")
 
